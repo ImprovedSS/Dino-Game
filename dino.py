@@ -24,6 +24,15 @@ def reiniciar_jogo():
     passaro.rect.x = largura
     dino.rect.y = dino.pos_y_inicial
     dino.pulo = False
+    nuvem1.rect.y = randrange(50, 200, 50)
+    nuvem2.rect.y = randrange(50, 200, 50)
+    nuvem3.rect.y = randrange(50, 200, 50)
+    nuvem4.rect.y = randrange(50, 200, 50)
+    nuvem1.rect.x = largura 
+    nuvem2.rect.x = largura 
+    nuvem3.rect.x = largura 
+    nuvem4.rect.x = largura 
+
 
 #tela
 largura = 640
@@ -53,9 +62,11 @@ class Dino(pygame.sprite.Sprite):
         #iniciando utilitários
         self.sprites = []
         self.pulo = False 
+        self.abaixado = False
+        self.descer = False
         self.som_pulo = pygame.mixer.Sound(os.path.join(diretorio_som, "jump_sound.wav"))
         self.som_pulo.set_volume(1)
-        for i in range(3):
+        for i in range(7):
             img = sprite_sheet.subsurface((i * 32, 0), (largura_altura_img)) #coordenadas, parâmetros de largura e altura
             img = pygame.transform.scale(img, (32 * 3, 32 * 3))
             self.sprites.append(img)
@@ -68,43 +79,65 @@ class Dino(pygame.sprite.Sprite):
     
     def update(self):
         if self.pulo == True:
-            if self.rect.y <= 220:
+            if self.rect.y <= 220 or self.abaixado == True:
                 self.pulo = False
+                if self.abaixado == True:
+                    self.descer = True
             else:
                 self.rect.y -= 20
         else:
+            if self.abaixado == True:
+                self.descer = True
             if self.rect.y < self.pos_y_inicial:
-                self.rect.y += 20
+                if self.descer == True:
+                    if self.pos_y_inicial - self.rect.y < 40:
+                        self.rect.y = self.pos_y_inicial
+                    else:
+                        self.rect.y += 40
+                else:
+                    self.rect.y += 20
             else:
                 self.rect.y = self.pos_y_inicial
-        if self.index_lista > 2:
+                self.descer = False
+
+        if self.rect.y != self.pos_y_inicial:
+            self.index_lista = 3
+        elif self.abaixado == True and self.pulo == False:
+            if self.index_lista < 4 or self.index_lista > 6:
+                self.index_lista = 4
+        elif self.index_lista > 2:
             self.index_lista = 0
         self.index_lista += 0.25
+
         self.image = self.sprites[int(self.index_lista)]
 
     def pular(self):
         self.pulo = True 
         self.som_pulo.play()
+    
+    def abaixar(self):
+        self.abaixado = True
+
 
 class Nuvens(pygame.sprite.Sprite):
     def  __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = sprite_sheet.subsurface((7 * 32, 0), (largura_altura_img))
+        self.image = sprite_sheet.subsurface((11 * 32, 0), (largura_altura_img))
         self.image = pygame.transform.scale(self.image, (32 * 3, 32 * 3))
         self.rect = self.image.get_rect()
-        self.rect.y = randrange(50, 200, 50)
+        self.rect.y = randrange(0, 150, 50)
         self.rect.x = largura - randrange(30, 300, 90) 
     
     def update(self):
         if self.rect.topright[0] < 0:
             self.rect.x = largura
-            self.rect.y = randrange(50, 200, 49)
+            self.rect.y = randrange(0, 150, 50)
         self.rect.x -= velocidade_jogo
 
 class Chao(pygame.sprite.Sprite):
     def __init__(self, pos_x):
         pygame.sprite.Sprite.__init__(self)
-        self.image = sprite_sheet.subsurface((6 * 32, 0), (largura_altura_img))
+        self.image = sprite_sheet.subsurface((10 * 32, 0), (largura_altura_img))
         self.image = pygame.transform.scale(self.image, (32 * 2, 32 * 2))
         self.rect = self.image.get_rect()
         self.rect.topleft = (pos_x * 64, altura - 64) #dimensões afetando
@@ -117,7 +150,7 @@ class Chao(pygame.sprite.Sprite):
 class Cacto(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = sprite_sheet.subsurface((5 * 32, 0), (largura_altura_img))
+        self.image = sprite_sheet.subsurface((9 * 32, 0), (largura_altura_img))
         self.image = pygame.transform.scale(self.image, (32 * 2, 32 * 2))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image) #adicionando uma máscara para colisões
@@ -125,15 +158,13 @@ class Cacto(pygame.sprite.Sprite):
     
     def update(self):
         if escolha_obstaculo == 0:
-            if self.rect.topright[0] <= 0:
-                self.rect.x = largura
             self.rect.x -= velocidade_jogo
 
 class Passaro(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         self.sprite_passaro = []
-        for i in range(3, 5):
+        for i in range(7, 9):
             img = sprite_sheet.subsurface((i * 32, 0), (largura_altura_img))
             img = pygame.transform.scale(img, (32 * 3, 32 * 3))
             self.sprite_passaro.append(img)
@@ -145,14 +176,11 @@ class Passaro(pygame.sprite.Sprite):
 
     def update(self):
         if escolha_obstaculo == 1:
-            if self.rect.topright[0] < 0:
-                self.rect.x = largura
-            else:
-                self.rect.x -= velocidade_jogo
+            self.rect.x -= velocidade_jogo
 
-            if self.index_lista > 1:
+            if self.index_lista > 1.80:
                 self.index_lista = 0
-            self.index_lista += 0.13
+            self.index_lista += 0.09
             self.image = self.sprite_passaro[int(self.index_lista)]
 
 #grupo de sprites
@@ -167,9 +195,17 @@ dino = Dino()
 all_sprites.add(dino)
 
     #nuvem
-for i in range(4):
-    nuvem = Nuvens()
-    all_sprites.add(nuvem)
+# for i in range(4):
+#     nuvem = Nuvens()
+#     all_sprites.add(nuvem)
+nuvem1 = Nuvens()  #fazendo individualmente para resetar ao reiniciar o jogo
+nuvem2 = Nuvens()
+nuvem3 = Nuvens()
+nuvem4 = Nuvens()
+all_sprites.add(nuvem1)
+all_sprites.add(nuvem2)
+all_sprites.add(nuvem3)
+all_sprites.add(nuvem4)
 
     #chão
 for i in range(20): #largura*2 // 64
@@ -197,20 +233,23 @@ escolha_obstaculo = choice([0, 1])
 #pontuação
 pontos = 0
 som_pontuacao = pygame.mixer.Sound(os.path.join(diretorio_som, "score_sound.wav"))
-som_pontuacao.set_volume(1)
-
+som_pontuacao.set_volume(0.5)
 
 
 
 while True:
     relogio.tick(30)
     tela.fill(branco)
+    if pygame.key.get_pressed()[K_DOWN] and colidiu == False:
+        dino.abaixar()
+    else:
+        dino.abaixado = False
     for event in pygame.event.get():
         if event.type == QUIT:
             pygame.quit()
             exit()
-        if event.type == KEYDOWN:
-            if event.key == K_UP or event.key == K_SPACE and colidiu == False:
+        if event.type == KEYDOWN and dino.abaixado == False:
+            if event.key == K_UP and colidiu == False or event.key == K_SPACE and colidiu == False:
                 if dino.rect.y != dino.pos_y_inicial:
                     pass
                 else:
@@ -221,9 +260,6 @@ while True:
     colisoes = pygame.sprite.spritecollide(dino, obstacles, False, pygame.sprite.collide_mask)         
     all_sprites.draw(tela)
 
-    if cacto.rect.topright[0] <= 0 or passaro.rect.topright[0] <= 0:
-        escolha_obstaculo = choice([0, 1])
-        cacto.rect.x, passaro.rect.x = largura, largura #isso garante que o choice seja usado apenas uma vez, pois o objeto fica fora do limite por tempo suficiente para acontecer várias iterações, algo que quebraria a lógica do código
 
     if colisoes and colidiu == False: #caso a lista contenha algo(ocorreu uma colisão) e o limitador não tenha sido acionado ainda, esse código será executado
         som_colisao.play()
@@ -242,6 +278,12 @@ while True:
         all_sprites.update()
         texto_pontos = exibe_mensagem(pontos, 40, preto)
     
+    if cacto.rect.topright[0] <= 0 or passaro.rect.topright[0] <= 0:
+        escolha_obstaculo = choice([0, 1])
+        cacto.rect.x, passaro.rect.x = largura, largura #isso garante que o choice seja usado apenas uma vez, pois o objeto fica fora do limite por tempo suficiente para acontecer várias iterações, algo que quebraria a lógica do código
+        if velocidade_jogo >= 20:
+            passaro.rect.y = randrange(288, 384, 32)
+
     tela.blit(texto_pontos, (520, 30)) #fica fora do else para continuar sendo escrita na tela
 
     if pontos % 100 == 0 and colidiu == False:
